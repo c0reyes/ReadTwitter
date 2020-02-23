@@ -42,7 +42,7 @@ if __name__ == '__main__':
     while True:
         try:
             stream = Stream(auth, l)
-            stream.filter(locations = region)
+            stream.filter(locations = region, is_async=True)
         except:
             print('Unexpected error: ', sys.exc_info()[0])
             pass
