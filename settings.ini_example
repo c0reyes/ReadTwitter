@@ -1,0 +1,11 @@
+[DEFAULT]
+file=logs/tweets.log
+
+[twitter]
+consumer_key=xxx
+consumer_secret=xxx
+access_token=xxx
+access_token_secret=xxx
+
+# https://boundingbox.klokantech.com/
+region=1,2,3,4
