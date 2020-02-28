@@ -5,21 +5,80 @@ import re
 import getopt
 import sys
 import os
+import configparser
 
-output = None
+from collections import OrderedDict
+
+def checkbots(accounts):
+    import botometer
+    
+    bots = []
+
+    config = configparser.ConfigParser()
+    config.read('settings.ini')
+
+    rapidapi_key = config['rapidapi']['key'] 
+    twitter_app_auth = {
+        'consumer_key': config['twitter']['consumer_key'],
+        'consumer_secret': config['twitter']['consumer_secret'],
+        'access_token': config['twitter']['access_token'],
+        'access_token_secret': config['twitter']['access_token_secret'],
+    }
+
+    bom = botometer.Botometer(wait_on_ratelimit=True,
+                              rapidapi_key=rapidapi_key,
+                              **twitter_app_auth)
+
+    for screen_name, result in bom.check_accounts_in(accounts):
+        # 0.6
+        # https://blog.quantinsti.com/detecting-bots-twitter-botometer/
+        # all() or any()
+        if any(i >= 0.6 for i in list(result['scores'].values)):
+            bots.append(screen_name.replace("@",""))
+
+    return bots
 
 def readfile(name):
-    global output
+    def group(num):
+        if num < 10000:
+            return 1 # Usuario, menos de 10k falloweres
+        elif num < 100000:
+            return 2 # Micro influencer, menos de 100k fallowers
+        elif num < 700000:
+            return 3 # Influencer, menos de 700k fallowers
+        else:
+            return 4 # Celebrity
 
+    def device(source):
+        if ('iPhone' in source) or ('iOS' in source) or ('iPad' in source) or ('Mac' in source):
+            return 'Apple'
+        elif 'Android' in source:
+            return 'Android'
+        elif ('Mobile' in source) or ('App' in source):
+            return 'Mobile device'
+        elif 'Windows' in source:
+            return 'Windows'
+        elif 'Bot' in source:
+            return 'Bot'
+        elif 'Web' in source:
+            return 'Web'
+        elif 'Instagram' in source:
+            return 'Instagram'
+        elif 'TweetDeck' in source:
+            return 'TweetDeck'
+        else:
+            return 'Unknown'
+
+    result = []
     regex_http = re.compile("(http|https)\:\/\/.*(\s|$)", re.UNICODE)
     regex_user = re.compile("@\w+", re.UNICODE)
     regex_hash = re.compile("#\w+")
-
+    
     with open(name, 'r', encoding='utf-8') as file:
         for line in file:
             try:
                 tweet = json.loads(line)
-            
+                
                 text = tweet['extended_tweet']['full_text'] if 'extended_tweet' in tweet else tweet['text']
                 text = text.replace("\n"," ")
                 text = regex_http.sub("", text)
@@ -30,44 +89,46 @@ def readfile(name):
                 hashtags = " ".join([ t['text'] for t in tweet['entities']['hashtags'] ]) if len(tweet['entities']['hashtags']) > 0 else ""
                 mentions = " ".join([ t['screen_name'] for t in tweet['entities']['user_mentions'] ]) if len(tweet['entities']['user_mentions']) > 0 else "" 
             
-                strtweet = "|".join(map(str, [
-                                 tweet['id'], 
-                                 tweet['user']['screen_name'],
-                                 tweet['user']['followers_count'], 
-                                 tweet['user']['verified'],
-                                 tweet['place']['name'],
-                                 text,
-                                 hashtags,
-                                 mentions,
-                                 " ".join(hashtags_text)
-                                ]))
-                if output:
-                    output.write(strtweet + "\n")
-                else:
-                    print(strtweet)
+                t = OrderedDict()
+                t['id'] = tweet['id']
+                t['file'] = name.split("/")[-1]
+                t['user'] = tweet['user']['screen_name']
+                t['device'] = device(tweet['source'])
+                t['followers'] = tweet['user']['followers_count']
+                t['group'] = group(int(tweet['user']['followers_count']))
+                t['city'] = tweet['place']['name']
+                t['text'] = text
+                t['hashtags'] = hashtags
+                t['mentions'] = mentions
+                t['hashtags_text'] = " ".join(hashtags_text)
+
+                result.append(t)
             except:
                 pass
 
+    return result
+
 def directory(path):
+    result = []
     for r, d, f in os.walk(path):
         for file in f:
-            readfile(name = os.path.join(r, file))
+            result = result + readfile(name = os.path.join(r, file))
+    return result
 
 def process(file, path):
     if file:
-        readfile(name = file)
+        return readfile(name = file)
     elif path:
-        directory(path = path)
+        return directory(path = path)
 
 def usage():
     print("readfiles.py\n\noptions: ")
     print("\t-h --help")
     print("\t-f | --file <filename>")
     print("\t-d | --directory <directory>")
+    print("\t-o | --output <filename>")
 
 def main():
-    global output
-
     try:
         opts, args = getopt.getopt(sys.argv[1:], "hf:d:o:", ["help", "file=", "directory=", "output="])
         if len(opts) == 0:
@@ -94,12 +155,32 @@ def main():
         else:
             assert False, "unhandled option"
     
-    if outputname:
+    # Process
+    result = process(file = file, path = directory)
+
+    # Users
+    users = [ "@{}".format(tweet['user']) for tweet in result]
+    users_set = set(users)
+    users = list(users_set)
+
+    # Check Bot
+    bots = checkbots(users)
+    for t in range(0, len(result)):
+        if result[t]['user'] in bots:
+            result[t]['group'] = '5'
+
+    print("tweets: ", len(result))
+    print("users: ", len(users))
+    print("bots: ", len(bots))
+
+    # Output
+    if not outputname:
+        for tweet in result:
+            print("|".join(str(v) for v in tweet.values()))
+    else:
         output = open(outputname, 'w')
-
-    process(file = file, path = directory)
-
-    if output:
+        for tweet in result:
+            output.write("|".join(str(v) for v in tweet.values()))
         output.close()
 
 if __name__ == '__main__':
