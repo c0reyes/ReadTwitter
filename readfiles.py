@@ -33,8 +33,10 @@ def checkbots(accounts):
         # 0.6
         # https://blog.quantinsti.com/detecting-bots-twitter-botometer/
         # all() or any()
-        if any(i >= 0.6 for i in list(result['scores'].values)):
-            bots.append(screen_name.replace("@",""))
+        if 'scores' in result:
+            if any(i >= 0.6 for i in list(result['scores'].values())):
+                print("{} {}".format(screen_name, result['scores']))
+                bots.append(screen_name.replace("@",""))
 
     return bots
 
@@ -96,7 +98,7 @@ def readfile(name):
                 t['device'] = device(tweet['source'])
                 t['followers'] = tweet['user']['followers_count']
                 t['group'] = group(int(tweet['user']['followers_count']))
-                t['city'] = tweet['place']['name']
+                t['origin'] = tweet['place']['name'] if tweet['place']['place_type'] == 'city' else tweet['place']['country']
                 t['text'] = text
                 t['hashtags'] = hashtags
                 t['mentions'] = mentions
@@ -178,10 +180,10 @@ def main():
         for tweet in result:
             print("|".join(str(v) for v in tweet.values()))
     else:
-        output = open(outputname, 'w')
+        file = open(outputname, 'w')
         for tweet in result:
-            output.write("|".join(str(v) for v in tweet.values()))
-        output.close()
+            file.write("|".join(str(v) for v in tweet.values()) + "\n")
+        file.close()
 
 if __name__ == '__main__':
     main()
