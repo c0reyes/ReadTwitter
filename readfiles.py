@@ -25,8 +25,8 @@ def checkbots(accounts):
         'access_token_secret': config['twitter']['access_token_secret'],
     }
 
-    bom = botometer.Botometer(wait_on_ratelimit=True,
-                              rapidapi_key=rapidapi_key,
+    bom = botometer.Botometer(wait_on_ratelimit = True,
+                              rapidapi_key = rapidapi_key,
                               **twitter_app_auth)
 
     for screen_name, result in bom.check_accounts_in(accounts):
@@ -99,10 +99,15 @@ def readfile(name):
                 t['followers'] = tweet['user']['followers_count']
                 t['group'] = group(int(tweet['user']['followers_count']))
                 t['origin'] = tweet['place']['name'] if tweet['place']['place_type'] == 'city' else tweet['place']['country']
-                t['text'] = text
+                t['text'] = text.replace("|","")
                 t['hashtags'] = hashtags
                 t['mentions'] = mentions
                 t['hashtags_text'] = " ".join(hashtags_text)
+
+                # MC Hammer
+                t['origin'] = t['origin'].replace("unicipio Pepillo Salcedo","Salcedo")
+                t['origin'] = t['origin'].replace("anto Domingo de Guzmán","Santo Domingo de Guzmán")
+                t['origin'] = "Santo Domingo de Guzmán" if t['origin'] == "" else t['origin']
 
                 result.append(t)
             except:
@@ -126,13 +131,14 @@ def process(file, path):
 def usage():
     print("readfiles.py\n\noptions: ")
     print("\t-h --help")
+    print("\t-b --bots")
     print("\t-f | --file <filename>")
     print("\t-d | --directory <directory>")
     print("\t-o | --output <filename>")
 
 def main():
     try:
-        opts, args = getopt.getopt(sys.argv[1:], "hf:d:o:", ["help", "file=", "directory=", "output="])
+        opts, args = getopt.getopt(sys.argv[1:], "hbf:d:o:", ["help", "file=", "directory=", "output="])
         if len(opts) == 0:
             usage()
             sys.exit()
@@ -143,6 +149,7 @@ def main():
     file = None
     directory = None
     outputname = None
+    verifbot = False
 
     for o, a in opts:
         if o in ("-h", "--help"):
@@ -154,6 +161,8 @@ def main():
             directory = a
         elif o in ("-o", "--output"):
             outputname = a
+        elif o in ("-b", "--bots"):
+            verifbot = True
         else:
             assert False, "unhandled option"
     
@@ -166,14 +175,16 @@ def main():
     users = list(users_set)
 
     # Check Bot
-    bots = checkbots(users)
-    for t in range(0, len(result)):
-        if result[t]['user'] in bots:
-            result[t]['group'] = '5'
+    if verifbot:
+        bots = checkbots(users)
+        for t in range(0, len(result)):
+            if result[t]['user'] in bots:
+                result[t]['group'] = 5
 
     print("tweets: ", len(result))
     print("users: ", len(users))
-    print("bots: ", len(bots))
+    if verifbot:
+        print("bots: ", len(bots))
 
     # Output
     if not outputname:
