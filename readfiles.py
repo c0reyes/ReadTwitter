@@ -9,37 +9,6 @@ import configparser
 
 from collections import OrderedDict
 
-def checkbots(accounts):
-    import botometer
-    
-    bots = []
-
-    config = configparser.ConfigParser()
-    config.read('settings.ini')
-
-    rapidapi_key = config['rapidapi']['key'] 
-    twitter_app_auth = {
-        'consumer_key': config['twitter']['consumer_key'],
-        'consumer_secret': config['twitter']['consumer_secret'],
-        'access_token': config['twitter']['access_token'],
-        'access_token_secret': config['twitter']['access_token_secret'],
-    }
-
-    bom = botometer.Botometer(wait_on_ratelimit = True,
-                              rapidapi_key = rapidapi_key,
-                              **twitter_app_auth)
-
-    for screen_name, result in bom.check_accounts_in(accounts):
-        # 0.6
-        # https://blog.quantinsti.com/detecting-bots-twitter-botometer/
-        # all() or any()
-        if 'scores' in result:
-            if any(i >= 0.6 for i in list(result['scores'].values())):
-                print("{} {}".format(screen_name, result['scores']))
-                bots.append(screen_name.replace("@",""))
-
-    return bots
-
 def readfile(name):
     def group(num):
         if num < 10000:
@@ -131,14 +100,13 @@ def process(file, path):
 def usage():
     print("readfiles.py\n\noptions: ")
     print("\t-h --help")
-    print("\t-b --bots")
     print("\t-f | --file <filename>")
     print("\t-d | --directory <directory>")
     print("\t-o | --output <filename>")
 
 def main():
     try:
-        opts, args = getopt.getopt(sys.argv[1:], "hbf:d:o:", ["help", "file=", "directory=", "output="])
+        opts, args = getopt.getopt(sys.argv[1:], "hf:d:o:", ["help", "file=", "directory=", "output="])
         if len(opts) == 0:
             usage()
             sys.exit()
@@ -161,8 +129,6 @@ def main():
             directory = a
         elif o in ("-o", "--output"):
             outputname = a
-        elif o in ("-b", "--bots"):
-            verifbot = True
         else:
             assert False, "unhandled option"
     
