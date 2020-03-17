@@ -62,7 +62,7 @@ def readfile(name):
             
                 t = OrderedDict()
                 t['id'] = tweet['id']
-                t['file'] = name.split("/")[-1]
+                t['file'] = (name.split("/")[-1]).split("_")[-1]
                 t['user'] = tweet['user']['screen_name']
                 t['device'] = device(tweet['source'])
                 t['followers'] = tweet['user']['followers_count']
@@ -154,10 +154,12 @@ def main():
 
     # Output
     if not outputname:
+        print("ID|DATE|USER|DEVICE|FALLOWERS|GROUP|ORIGIN|TEXT|HASHTAGS|MENTIONS|HASHTAGS_TEXT")
         for tweet in result:
             print("|".join(str(v) for v in tweet.values()))
     else:
         file = open(outputname, 'w')
+        file.write("ID|DATE|USER|DEVICE|FALLOWERS|GROUP|ORIGIN|TEXT|HASHTAGS|MENTIONS|HASHTAGS_TEXT\n")
         for tweet in result:
             file.write("|".join(str(v) for v in tweet.values()) + "\n")
         file.close()
