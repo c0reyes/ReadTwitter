@@ -10,10 +10,10 @@ Is the script to connect to twitter stream, its configure only for get polygons.
 
 Maybe its not necesary, you can read the json directily.
 
-# bots.py
+## bots.py
 
 Check a list of twitter account and verify if are bots or something like that ;-)
 
-# geolocation.py
+## geolocation.py
 
 Twitter api not offer geo location about the origin of the tweets, but you can try to get the location of the city.
