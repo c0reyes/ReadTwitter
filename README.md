@@ -4,7 +4,7 @@ I created this script for collect data from twitter to use in my TFM.
 
 ## readstream.py
 
-Is the script to connect to twitter stream, its configure only for get polygons.
+The script to connect to twitter stream, its configure only for get polygons.
 
 ## readfiles.py
 
