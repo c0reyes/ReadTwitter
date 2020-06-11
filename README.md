@@ -2,13 +2,17 @@
 
 I created this script for collect data from twitter to use in my TFM.
 
+To install:
+
+> pip install -r requirements.txt
+
 ## readstream.py
 
 The script to connect to twitter stream, its configure only for get polygons.
 
 ## readfiles.py
 
-Maybe its not necesary, you can read the json directily.
+Maybe its not necesary, you can read from json file directily.
 
 ## bots.py
 
